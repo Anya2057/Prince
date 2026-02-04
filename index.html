@@ -2,142 +2,141 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Prince of Ruins: SEGA Style</title>
+    <title>Prince of Ruins: Fixed</title>
     <style>
-        body { background: #000; color: white; display: flex; flex-direction: column; align-items: center; font-family: 'Courier New', monospace; margin: 0; }
-        canvas { 
-            background: #2c3e50; 
-            border: 6px solid #3e2723; 
-            box-shadow: 0 0 30px #e67e22; 
-            image-rendering: pixelated; /* Сохраняем четкость пикселей */
-            margin-top: 20px;
-        }
-        .ui { background: #2d2d2d; padding: 15px; width: 770px; text-align: center; border: 2px solid #5d4037; margin-top: 10px; }
-        #question-box { display: none; background: #3d3d3d; padding: 20px; border-radius: 8px; border: 2px gold solid; }
-        button { padding: 10px 20px; margin: 5px; background: #d35400; color: white; border: 2px solid #fff; cursor: pointer; font-weight: bold; }
-        button:hover { background: #e67e22; }
+        body { background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; margin: 0; }
+        canvas { background: #2c3e50; border: 4px solid #5d4037; margin-top: 20px; image-rendering: pixelated; }
+        .ui { background: #2d2d2d; padding: 20px; border-radius: 10px; margin-top: 10px; width: 760px; text-align: center; }
+        #question-box { display: none; background: rgba(0,0,0,0.8); padding: 20px; border: 2px solid gold; position: absolute; top: 150px; }
+        button { padding: 12px 24px; margin: 10px; cursor: pointer; background: #d35400; color: white; border: 2px solid #fff; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <canvas id="gameCanvas" width="800" height="400"></canvas>
     
-    <div class="ui">
-        <div id="status">УРОВЕНЬ 1: ДРЕВНИЕ ПОРОГИ</div>
-        <div id="question-box">
-            <h3 id="question-text">Загадка...</h3>
-            <button onclick="checkAnswer(true)">УДАР (Верно)</button>
-            <button onclick="checkAnswer(false)">ОШИБКА</button>
-        </div>
+    <div id="question-box">
+        <h3 id="question-text">Вопрос...</h3>
+        <button onclick="checkAnswer(true)">УДАРИТЬ (Верно)</button>
+        <button onclick="checkAnswer(false)">ОШИБКА</button>
     </div>
 
-<script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-    // КАРТИНКИ
-    const heroImg = new Image();
-    heroImg.src = 'hero.png';
+        const heroImg = new Image();
+        heroImg.src = 'hero.png'; 
 
-    const bgImg = new Image();
-    // Красивый атмосферный фон руин
-    bgImg.src = 'https://img.itch.zone/aW1nLzI4ODA2NjkucG5n/original/xY6S6l.png';
-
-    let hero = { 
-        x: 50, y: 260, w: 100, h: 100, 
-        vx: 0, vy: 0, speed: 5, jumpPower: -13, gravity: 0.7, 
-        grounded: false, state: 'idle', frame: 0, fTimer: 0, dir: 1 
-    };
-
-    // Настройки твоего спрайта (сетка 1024x1024, примерно 256px на кадр)
-    const sW = 256; 
-    const sH = 256;
-    const anims = {
-        'idle': { row: 0, frames: 4 },
-        'run':  { row: 1, frames: 4 },
-        'hit':  { row: 2, frames: 3 }
-    };
-
-    let wall = { x: 600, y: 260, w: 80, h: 100, hp: 3, exists: true };
-    let keys = {};
-
-    window.addEventListener('keydown', e => keys[e.code] = true);
-    window.addEventListener('keyup', e => keys[e.code] = false);
-
-    function update() {
-        if (hero.state === 'locked' || hero.state === 'hit') return;
-
-        if (keys['ArrowRight']) { hero.vx = hero.speed; hero.state = 'run'; hero.dir = 1; }
-        else if (keys['ArrowLeft']) { hero.vx = -hero.speed; hero.state = 'run'; hero.dir = -1; }
-        else { hero.vx = 0; hero.state = 'idle'; }
-
-        if (keys['Space'] && hero.grounded) { hero.vy = hero.jumpPower; hero.grounded = false; }
+        // Настройки кадра под вашу картинку (1024x1024, 4x3 кадра)
+        const sW = 256; 
+        const sH = 256;
         
-        hero.vy += hero.gravity; hero.x += hero.vx; hero.y += hero.vy;
+        let hero = { 
+            x: 50, y: 250, w: 120, h: 120, // Увеличил размер, чтобы принца было лучше видно
+            vx: 0, vy: 0, speed: 5, jumpPower: -15, gravity: 0.8, 
+            grounded: false, state: 'idle', frame: 0, fTimer: 0, dir: 1 
+        };
 
-        if (hero.y > 260) { hero.y = 260; hero.vy = 0; hero.grounded = true; }
-        if (hero.x < 0) hero.x = 0;
+        const anims = {
+            'idle': { row: 0, frames: 4 },
+            'run':  { row: 1, frames: 4 },
+            'locked': { row: 0, frames: 1 }, // Просто стоит перед стеной
+            'hit':  { row: 2, frames: 3 }
+        };
 
-        if (wall.exists && hero.x + 60 > wall.x && hero.x < wall.x + wall.w) {
-            hero.x = wall.x - 60; hero.state = 'locked'; 
-            document.getElementById('question-box').style.display = 'block';
-            document.getElementById('question-text').innerText = "Как пишется: (НЕ)БЫЛИЦА?";
+        let wall = { x: 600, y: 250, w: 80, h: 110, hp: 3, exists: true };
+        let keys = {};
+
+        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        function update() {
+            if (hero.state === 'locked' || hero.state === 'hit') {
+                hero.vx = 0;
+            } else {
+                if (keys['ArrowRight']) { hero.vx = hero.speed; hero.state = 'run'; hero.dir = 1; }
+                else if (keys['ArrowLeft']) { hero.vx = -hero.speed; hero.state = 'run'; hero.dir = -1; }
+                else { hero.vx = 0; hero.state = 'idle'; }
+            }
+
+            if (keys['Space'] && hero.grounded && hero.state !== 'locked') { 
+                hero.vy = hero.jumpPower; hero.grounded = false; 
+            }
+            
+            hero.vy += hero.gravity; hero.x += hero.vx; hero.y += hero.vy;
+            if (hero.y > 250) { hero.y = 250; hero.vy = 0; hero.grounded = true; }
+
+            // Проверка стены
+            if (wall.exists && hero.x + 80 > wall.x && hero.x < wall.x + 40) {
+                hero.x = wall.x - 80;
+                if (hero.state !== 'locked' && hero.state !== 'hit') {
+                    hero.state = 'locked';
+                    document.getElementById('question-box').style.display = 'block';
+                    document.getElementById('question-text').innerText = "Как пишется: (НЕ)БЫЛИЦА?";
+                }
+            }
         }
-    }
 
-    function draw() {
-        // Рисуем фон
-        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+        function draw() {
+            ctx.clearRect(0,0,800,400);
+            
+            // Земля
+            ctx.fillStyle = "#27ae60";
+            ctx.fillRect(0, 360, 800, 40);
 
-        // Рисуем препятствие
-        if (wall.exists) {
-            ctx.fillStyle = "#5d4037";
-            ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
-            ctx.fillStyle = "white";
-            ctx.fillText("ПРОЧНОСТЬ: " + wall.hp, wall.x, wall.y - 10);
+            // Стена
+            if (wall.exists) {
+                ctx.fillStyle = "#5d4037";
+                ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+                ctx.fillStyle = "white";
+                ctx.fillText("ПРОЧНОСТЬ: " + wall.hp, wall.x, wall.y - 10);
+            }
+
+            // Логика кадров
+            hero.fTimer++;
+            if (hero.fTimer > 8) {
+                hero.frame = (hero.frame + 1) % anims[hero.state].frames;
+                hero.fTimer = 0;
+            }
+
+            // Рисуем принца
+            ctx.save();
+            if (hero.dir === -1) {
+                ctx.translate(hero.x + hero.w, hero.y);
+                ctx.scale(-1, 1);
+                ctx.drawImage(heroImg, hero.frame * sW, anims[hero.state].row * sH, sW, sH, 0, 0, hero.w, hero.h);
+            } else {
+                ctx.drawImage(heroImg, hero.frame * sW, anims[hero.state].row * sH, sW, sH, hero.x, hero.y, hero.w, hero.h);
+            }
+            ctx.restore();
+
+            update();
+            requestAnimationFrame(draw);
         }
 
-        // Анимация
-        hero.fTimer++;
-        if (hero.fTimer > 8) {
-            hero.frame = (hero.frame + 1) % anims[hero.state].frames;
-            hero.fTimer = 0;
+        function checkAnswer(correct) {
+            if (correct) {
+                hero.state = 'hit';
+                hero.frame = 0;
+                setTimeout(() => {
+                    wall.hp--;
+                    if (wall.hp <= 0) {
+                        wall.exists = false;
+                        document.getElementById('question-box').style.display = 'none';
+                        hero.state = 'idle';
+                    } else {
+                        hero.state = 'locked';
+                    }
+                }, 600);
+            } else {
+                hero.x -= 200; 
+                hero.state = 'idle';
+                document.getElementById('question-box').style.display = 'none';
+            }
         }
 
-        // Отрисовка героя
-        ctx.save();
-        if (hero.dir === -1) {
-            ctx.translate(hero.x + hero.w, hero.y);
-            ctx.scale(-1, 1);
-            ctx.drawImage(heroImg, hero.frame * sW, anims[hero.state].row * sH, sW, sH, 0, 0, hero.w, hero.h);
-        } else {
-            ctx.drawImage(heroImg, hero.frame * sW, anims[hero.state].row * sH, sW, sH, hero.x, hero.y, hero.w, hero.h);
-        }
-        ctx.restore();
-
-        update();
-        requestAnimationFrame(draw);
-    }
-
-    function checkAnswer(correct) {
-        if (correct) {
-            hero.state = 'hit';
-            setTimeout(() => {
-                wall.hp--;
-                if (wall.hp <= 0) {
-                    wall.exists = false;
-                    document.getElementById('question-box').style.display = 'none';
-                    hero.state = 'idle';
-                } else { hero.state = 'locked'; }
-            }, 500);
-        } else {
-            hero.x = 50; 
-            hero.state = 'idle';
-            document.getElementById('question-box').style.display = 'none';
-        }
-    }
-
-    heroImg.onload = () => draw();
-</script>
+        heroImg.onload = () => draw();
+    </script>
 </body>
 </html>
